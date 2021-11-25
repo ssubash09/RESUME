@@ -1,0 +1,38 @@
+S3 CLI 
+
+AWS CLI –with S3 Bucket
+
+To create a new bucket
+aws s3 mb s3://tamilcloud
+
+To upload the file to s3 bucket
+aws s3 cp demo.txt s3://tamilcloud
+
+To download file from s3 bucket
+aws s3 cp s3://tamilcloud/demo.txt ./
+
+To delete s3 bucket file
+aws s3 rm s3://tamilcloud/demo.txt
+
+To Sync the local directory with s3 bucket 
+
+aws s3 sync s3upload s3://tamilcloud/s3upload
+
+aws s3 sync s3://tamilcloud/s3upload s3upload
+
+To see s3 bucket content
+aws s3 ls s3://tamilcloud/s3upload
+
+
+to create a ec2 instances in aws cli
+
+aws ec2 run-instances --image-id ami-074cce78125f09d61 --count 1 --instance-type t2.micro --key-name deke --security-group-ids sg-040d02559be6f208d --subnet-id subnet-33c9ff7f
+
+to add a tag 
+aws ec2 create-tags --resources i-06556ab3b5f2bc3dc --tags Key=Name,Value=instancecli
+
+terminate the instance 
+aws ec2 terminate-instances --instance-ids i-06556ab3b5f2bc3dc
+
+for more reference 
+https://docs.aws.amazon.com/cli/latest/userguide/cli-services-ec2-instances.html
