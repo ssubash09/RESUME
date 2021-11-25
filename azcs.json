@@ -1,0 +1,195 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "",
+    "Metadata": {
+
+    },
+    "Parameters": {
+      "azcsvpccidr": {
+          "Description": "-",
+          "Type": "String",
+          "Default": "172.28.0.0/24"
+      },
+      "azcssn1cidr": {
+          "Description": "SN1 CIDR",
+          "Type": "String",
+          "Default": "172.28.0.0/28"
+      },
+      "azcssn1az": {
+          "Description": " Choose the AZ you want ",
+          "Type": "AWS::EC2::AvailabilityZone::Name"
+
+      },
+      "azcssn2az": {
+          "Description": " Choose the AZ you want ",
+          "Type": "AWS::EC2::AvailabilityZone::Name"
+
+      },
+      "azcssn2cidr": {
+          "Description": "SN2 CIDR",
+          "Type": "String",
+          "Default": "172.28.0.16/28"
+      },
+      "azcsec2key": {
+          "Description": " choose the keypair ",
+          "Type": "AWS::EC2::KeyPair::KeyName"
+
+      },
+      "azcsami": {
+          "Description": "Choose the AMI",
+          "Type": "AWS::EC2::Image::Id"
+
+      },
+      "azcsec2types": {
+          "Description": "choose the ec2 types",
+          "Type": "String",
+          "Default": "t2.micro"
+      }
+
+    },
+    "Mappings": {
+
+    },
+    "Conditions": {
+
+    },
+    "Resources": {
+      "azcsvpc": {
+        "Type": "AWS::EC2::VPC",
+        "Properties": {
+          "CidrBlock": { "Ref": "azcsvpccidr" },
+          "Tags": [{ "Key": "Name", "Value":  "azcsvpc" }]
+        }
+      },
+      "azcsigw": {
+        "Type": "AWS::EC2::InternetGateway",
+        "Properties": {
+          "Tags": [{ "Key": "Name", "Value":  "azcsigw" }]
+        }
+      },
+      "AttachGateway": {
+        "Type": "AWS::EC2::VPCGatewayAttachment",
+        "Properties": {
+          "VpcId": { "Ref": "azcsvpc" },
+          "InternetGatewayId": { "Ref": "azcsigw" }
+        }
+      },
+      "azcssn1": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "AvailabilityZone": { "Ref": "azcssn1az" },
+           "MapPublicIpOnLaunch" : "true",
+          "VpcId": { "Ref": "azcsvpc" },
+          "CidrBlock": { "Ref": "azcssn1cidr" },
+          "Tags": [{ "Key": "Name", "Value":  "azcssn1" }]
+        }
+      },
+      "azcssn2": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "AvailabilityZone": { "Ref": "azcssn2az" },
+          "VpcId": { "Ref": "azcsvpc" },
+          "CidrBlock": { "Ref": "azcssn2cidr" },
+          "Tags": [{ "Key": "Name", "Value":  "azcssn2" }]
+        }
+      },
+      "azcspubrt": {
+        "Type": "AWS::EC2::RouteTable",
+        "Properties": {
+          "VpcId": { "Ref": "azcsvpc" },
+          "Tags": [{ "Key": "Name", "Value":  "azcspubrt" }]
+        }
+      },
+      "azcspubrtass": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+          "SubnetId": { "Ref": "azcssn1" },
+          "RouteTableId": { "Ref": "azcspubrt" }
+        }
+      },
+      "azcsroute": {
+        "Type": "AWS::EC2::Route",
+        "Properties": {
+          "RouteTableId": { "Ref": "azcspubrt" },
+          "DestinationCidrBlock": "0.0.0.0/0",
+          "GatewayId": { "Ref": "azcsigw" }
+        }
+        },
+        "azcsjumpsg" : {
+          "Type" : "AWS::EC2::SecurityGroup",
+          "Properties" : {
+            "GroupDescription" : "-",
+            "SecurityGroupIngress" : [
+              {
+                "IpProtocol" : "tcp",
+                "FromPort" : 22,
+                "ToPort" : 22,
+                "CidrIp" : "0.0.0.0/0"
+              }
+            ],
+            "VpcId" : { "Ref": "azcsvpc" },
+            "Tags" :  [{ "Key": "Name", "Value":  "azcsjumpsg" }]
+          }
+        },
+      "azcsjump": {
+          "Type": "AWS::EC2::Instance",
+          "Properties": {
+              "KeyName": { "Ref": "azcsec2key" },
+              "SubnetId": { "Ref": "azcssn1" },
+              "ImageId": { "Ref": "azcsami" },
+              "InstanceType": { "Ref": "azcsec2types" },
+              "Monitoring": "false",
+              "SecurityGroupIds" : [{ "Ref": "azcsjumpsg" }],
+              "Tags": [
+                  {
+                      "Key": "Name",
+                      "Value": "azcsjump"
+                  }
+              ],
+              "UserData": {
+                  "Fn::Base64": {
+                      "Fn::Join": [
+                          "",
+                          [
+                              "#!/bin/bash -ex",
+                              "-"
+                          ]
+                      ]
+                  }
+              }
+      }
+    },
+    "azcsapp1": {
+        "Type": "AWS::EC2::Instance",
+        "Properties": {
+            "KeyName": { "Ref": "azcsec2key" },
+            "SubnetId": { "Ref": "azcssn2" },
+            "ImageId": { "Ref": "azcsami" },
+            "InstanceType": { "Ref": "azcsec2types" },
+            "Monitoring": "false",
+            "SecurityGroupIds" : [{ "Ref": "azcsjumpsg" }],
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "azcsapp1"
+                }
+            ],
+            "UserData": {
+                "Fn::Base64": {
+                    "Fn::Join": [
+                        "",
+                        [
+                            "#!/bin/bash -ex",
+                            "-"
+                        ]
+                    ]
+                }
+            }
+    }
+            }
+
+    },
+    "Outputs": {
+
+    }
+}
